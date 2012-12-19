@@ -1,0 +1,1045 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+ This file is part of GtkSourceView
+
+ Author: Francesco Gigli <jaramir@aruba.it>
+ Copyright (C) 2003 Francesco Gigli <jaramir@aruba.it>
+ Copyright (C) 2004 David A Knight <david@ritter.demon.co.uk>
+ Copyright (C) 2005 Rowan Lewis <rowanjl@gmail.com>
+ Copyright (C) 2006 Steve Frécinaux <steve@istique.net>
+ Copyright (C) 2007 Patryk Zawadzki <patrys@pld-linux.org>
+ Copyright (C) 2007 Eric Norige <thelema@swbell.net>
+ Copyright (C) 2012 Torsten Weiler <mail@torsten-weiler.de>
+
+ This library is free software; you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation; either version 2 of the License, or
+ (at your option) any later version.
+
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ GNU General Public License for more details.
+
+ You should have received a copy of the GNU General Public License
+ along with this program; if not, write to the Free Software
+ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+
+-->
+<language id="ts" _name="Typoscript" version="2.0" _section="Scripts">
+  <metadata>
+    <property name="mimetypes">text/x-typoscript;application/x-typoscript</property>
+    <property name="globs">*.t3;*.t3s</property>
+    <property name="line-comment-start">#</property>
+    <property name="block-comment-start">/*</property>
+    <property name="block-comment-end">*/</property>
+  </metadata>
+
+  <styles>
+    <style id="tlo-object" _name="Top-Level Object" map-to="def:type"/>
+    <style id="c-object" _name="C Object" map-to="def:shebang"/>
+    <style id="keyword" _name="Keyword" map-to="def:keyword"/>
+    <style id="comment" _name="Comment" map-to="def:comment"/>
+    <style id="string" _name="String" map-to="def:string"/>
+    <style id="type" _name="Data Type" map-to="def:type"/>
+    <style id="boolean" _name="Boolean value" map-to="def:boolean"/>
+    <style id="decimal" _name="Decimal" map-to="def:decimal"/>
+    <style id="tag" _name="Tag" map-to="xml:element-name"/>
+    <style id="attrib-name" _name="Attribute Name" map-to="xml:attribute-name"/>
+    <style id="attrib-value" _name="Attribute Value" map-to="xml:attribute-value"/>
+    <style id="color" _name="Color" map-to="def:base-n-integer"/>
+    <style id="dtd" _name="DTD" map-to="xml:doctype"/>
+    <style id="error" _name="Error" map-to="def:error"/>
+    <style id="variable" _name="Variable" map-to="def:identifier"/>
+    <style id="escape" _name="Escaped Character" map-to="def:special-char"/>
+  </styles>
+
+    <default-regex-options case-sensitive="true"/>
+
+  <definitions>
+    <context id="bash-line-comment" style-ref="comment" end-at-line-end="true" extend-parent="false" class="comment" class-disabled="no-spell-check">
+      <start># </start>
+      <include>
+        <context ref="def:in-line-comment"/>
+      </include>
+    </context>
+
+    <context id="c-block-comment" style-ref="comment" class="comment" class-disabled="no-spell-check">
+      <start>/\*</start>
+      <end>\*/</end>
+      <include>
+        <context ref="def:in-line-comment"/>
+      </include>
+    </context>
+
+        <context id="dtd" style-ref="dtd" class="no-spell-check">
+            <start>&lt;!</start>
+            <end>&gt;</end>
+        </context>
+
+        <!-- This is a placeholder context intended to be <replace>d
+             in languages like php that need to embedd contexts inside
+             html tags and attributes.
+        -->
+        <context id="embedded-lang-hook">
+            <start>\%{def:never-match}</start>
+            <end></end>
+        </context>
+
+        <context id="generic-tag">
+            <include>
+
+                <!-- Attribute in the form: name="value" -->
+                <context id="attrib-quoted" style-ref="attrib-name" class="no-spell-check">
+                    <start extended="true">
+                        [A-Za-z0-9:_-]+ # attribute name
+                        \s*=\s*         # "="
+                        (\")            # string beginning
+                    </start>
+                    <end>\"</end>
+                    <include>
+                        <context sub-pattern="1" where="start" style-ref="attrib-value"/>
+                        <context sub-pattern="0" where="end" style-ref="attrib-value"/>
+                        <context id="string" extend-parent="false" end-at-line-end="true" style-ref="attrib-value" class="string" class-disabled="no-spell-check">
+                            <start>\%{def:always-match}</start>
+                            <include>
+                                <context ref="xml:entity"/>
+                                <context ref="xml:character-reference"/>
+                                <context ref="embedded-lang-hook"/>
+                            </include>
+                        </context>
+                    </include>
+                </context>
+
+                <!-- Attribute in the form: name=value -->
+                <context id="attrib-unquoted" style-ref="attrib-value" class="no-spell-check">
+                    <start extended="true">
+                        [a-z0-9:_-]+ # attribute name
+                        \s*=\s*      # "="
+                    </start>
+                    <end>(?=&gt;|\s)</end>
+                    <include>
+                        <context sub-pattern="0" where="start" style-ref="attrib-name"/>
+                        <context ref="xml:entity"/>
+                        <context ref="xml:character-reference"/>
+                    </include>
+                </context>
+
+                <!-- Attribute in the form: name -->
+                <context id="attrib-no-value" style-ref="attrib-name" class="no-spell-check">
+                    <match extended="true">
+                        [a-z0-9:_-]+  # attribute name
+                    </match>
+                </context>
+
+                <context ref="embedded-lang-hook"/>
+
+            </include>
+        </context>
+
+    <context id="escape" style-ref="escape">
+      <match>\\((\\|"|n|t|\$|r)|[0-7]{1,3}|x[0-9a-fA-F]{1,2})</match>
+    </context>
+
+    <context id="variable" style-ref="variable">
+      <match>[$]+[a-zA-Z_][a-zA-Z0-9_]*</match>
+    </context>
+
+    <context id="number" style-ref="decimal">
+      <match>\b(0|[\+-]?[1-9][0-9]*)</match>
+    </context>
+
+    <context id="hexadecimal-color" style-ref="color">
+      <match>#([a-fA-F0-9]{6}|[a-fA-F0-9]{3})\b</match>
+    </context>
+
+    <context id="named-color" style-ref="color">
+      <keyword>aqua</keyword>
+      <keyword>black</keyword>
+      <keyword>blue</keyword>
+      <keyword>fuchsia</keyword>
+      <keyword>gray</keyword>
+      <keyword>green</keyword>
+      <keyword>lime</keyword>
+      <keyword>maroon</keyword>
+      <keyword>navy</keyword>
+      <keyword>olive</keyword>
+      <keyword>orange</keyword>
+      <keyword>purple</keyword>
+      <keyword>red</keyword>
+      <keyword>silver</keyword>
+      <keyword>teal</keyword>
+      <keyword>white</keyword>
+      <keyword>yellow</keyword>
+    </context>
+
+  <!-- TLO Top-Level Objects -->
+	<context id="tlo-objects" style-ref="tlo-object">
+		<keyword>CONFIG</keyword>
+		<keyword>CONSTANTS</keyword>
+		<keyword>FE_DATA</keyword>
+		<keyword>FE_TABLE</keyword>
+		<keyword>FRAMESET</keyword>
+		<keyword>FRAME</keyword>
+		<keyword>META</keyword>
+		<keyword>CARRAY</keyword>
+		<keyword>plugin</keyword>
+		<keyword>temp</keyword>
+		<keyword>styles</keyword>
+		<keyword>lib</keyword>
+		<keyword>types</keyword>
+		<keyword>resources</keyword>
+		<keyword>config</keyword>
+		<keyword>constants</keyword>
+		<keyword>FEData</keyword>
+		<keyword>includeLibs</keyword>
+	</context>
+
+	<!-- Content Objects (cObject) -->
+	<context id="c-objects" style-ref="c-object">
+		<keyword>PAGE</keyword>
+		<keyword>HTML</keyword>
+		<keyword>TEXT</keyword>
+		<keyword>COBJ_ARRAY</keyword>
+		<keyword>COA</keyword>
+		<keyword>COA_INT</keyword>
+		<keyword>FILE</keyword>
+		<keyword>IMAGE</keyword>
+		<keyword>IMG_RESOURCE</keyword>
+		<keyword>CLEARGIF</keyword>
+		<keyword>CONTENT</keyword>
+		<keyword>RECORDS</keyword>
+		<keyword>HMENU</keyword>
+		<keyword>CTABLE</keyword>
+		<keyword>OTABLE</keyword>
+		<keyword>COLUMNS</keyword>
+		<keyword>HRULER</keyword>
+		<keyword>IMGTEXT</keyword>
+		<keyword>CASE</keyword>
+		<keyword>LOAD_REGISTER</keyword>
+		<keyword>RESTORE_REGISTER</keyword>
+		<keyword>FORM</keyword>
+		<keyword>SEARCHRESULT</keyword>
+		<keyword>USER</keyword>
+		<keyword>USER_INT</keyword>
+		<keyword>PHP_SCRIPT</keyword>
+		<keyword>PHP_SCRIPT_INT</keyword>
+		<keyword>PHP_SCRIPT_EXT</keyword>
+		<keyword>TEMPLATE</keyword>
+		<keyword>MULTIMEDIA</keyword>
+		<keyword>EDITPANEL</keyword>
+	</context>
+	
+	<!-- Funtions -->
+    <context id="keywords" style-ref="keyword">
+      <keyword>CASE</keyword>
+      <keyword>CASEFUNC</keyword>
+      <keyword>FLUIDTEMPLATE</keyword>
+      <keyword>MEDIA</keyword>
+      <keyword>QTOBJECT</keyword>
+      <keyword>SVG</keyword>
+      <keyword>SWFOBJECT</keyword>
+      <keyword>HTMLparser</keyword>
+      <keyword>TCAselectItem</keyword>
+      <keyword>page</keyword>
+      <keyword>lib</keyword>
+      <keyword>INCLUDE_TYPOSCRIPT</keyword>
+      <keyword>default</keyword>
+<keyword>en</keyword>
+<keyword>dk</keyword>
+<keyword>de</keyword>
+<keyword>no</keyword>
+<keyword>it</keyword>
+<keyword>fr</keyword>
+<keyword>nl</keyword>
+<keyword>cz</keyword>
+<keyword>pl</keyword>
+<keyword>si</keyword>
+<keyword>fi</keyword>
+<keyword>tr</keyword>
+<keyword>se</keyword>
+<keyword>pt</keyword>
+<keyword>ru</keyword>
+<keyword>ro</keyword>
+<keyword>ch</keyword>
+<keyword>sk</keyword>
+<keyword>lt</keyword>
+<keyword>is</keyword>
+<keyword>hr</keyword>
+<keyword>hu</keyword>
+<keyword>gl</keyword>
+<keyword>th</keyword>
+<keyword>gr</keyword>
+<keyword>hk</keyword>
+<keyword>eu</keyword>
+<keyword>bg</keyword>
+<keyword>br</keyword>
+<keyword>et</keyword>
+<keyword>ar</keyword>
+<keyword>he</keyword>
+<keyword>ua</keyword>
+<keyword>lv</keyword>
+<keyword>jp</keyword>
+<keyword>vn</keyword>
+<keyword>ca</keyword>
+<keyword>ba</keyword>
+<keyword>kr</keyword>
+<keyword>eo</keyword>
+<keyword>my</keyword>
+<keyword>hi</keyword>
+<keyword>1</keyword>
+<keyword>2</keyword>
+<keyword>3</keyword>
+<keyword>4</keyword>
+<keyword>TDParams</keyword>
+<keyword>if</keyword>
+<keyword>key</keyword>
+<keyword>setCurrent</keyword>
+<keyword>stdWrap</keyword>
+<keyword>height</keyword>
+<keyword>width</keyword>
+<keyword>wrap</keyword>
+<keyword>includeLibs</keyword>
+<keyword>TDparams</keyword>
+<keyword>after</keyword>
+<keyword>gapBgCol</keyword>
+<keyword>gapLineCol</keyword>
+<keyword>gapLineThickness</keyword>
+<keyword>gapWidth</keyword>
+<keyword>rows</keyword>
+<keyword>tableParams</keyword>
+<keyword>totalWidth</keyword>
+<keyword>ATagParams</keyword>
+<keyword>MP_defaults</keyword>
+<keyword>MP_disableTypolinkClosestMPvalue</keyword>
+<keyword>MP_mapRootPoints</keyword>
+<keyword>USERNAME_substToken</keyword>
+<keyword>USERUID_substToken</keyword>
+<keyword>absRefPrefix</keyword>
+<keyword>additionalHeaders</keyword>
+<keyword>admPanel</keyword>
+<keyword>baseURL</keyword>
+<keyword>beLoginLinkIPList</keyword>
+<keyword>beLoginLinkIPList_login</keyword>
+<keyword>beLoginLinkIPList_logout</keyword>
+<keyword>cache</keyword>
+<keyword>cache_clearAtMidnight</keyword>
+<keyword>cache_period</keyword>
+<keyword>compensateFieldWidth</keyword>
+<keyword>content_from_pid_allowOutsideDomain</keyword>
+<keyword>debug</keyword>
+<keyword>defaultGetVars</keyword>
+<keyword>disableAllHeaderCode</keyword>
+<keyword>disableCharsetHeader</keyword>
+<keyword>disablePageExternalUrl</keyword>
+<keyword>disablePrefixComment</keyword>
+<keyword>disablePreviewNotification</keyword>
+<keyword>doctype</keyword>
+<keyword>doctypeSwitch</keyword>
+<keyword>enableContentLengthHeader</keyword>
+<keyword>extTarget</keyword>
+<keyword>fileTarget</keyword>
+<keyword>forceTypeValue</keyword>
+<keyword>frameReloadIfNotInFrameset</keyword>
+<keyword>ftu</keyword>
+<keyword>headerComment </keyword>
+<keyword>htmlTag_dir</keyword>
+<keyword>htmlTag_langKey</keyword>
+<keyword>htmlTag_setParams</keyword>
+<keyword>incT3Lib_htmlmail </keyword>
+<keyword>includeLibrary</keyword>
+<keyword>index_descrLgd</keyword>
+<keyword>index_enable</keyword>
+<keyword>index_externals</keyword>
+<keyword>inlineStyle2TempFile</keyword>
+<keyword>insertDmailerBoundaries</keyword>
+<keyword>intTarget</keyword>
+<keyword>jumpurl_enable</keyword>
+<keyword>jumpurl_mailto_disable</keyword>
+<keyword>language</keyword>
+<keyword>language_alt</keyword>
+<keyword>linkVars</keyword>
+<keyword>locale_all</keyword>
+<keyword>lockFilePath</keyword>
+<keyword>mainScript</keyword>
+<keyword>meaningfulTempFilePrefix</keyword>
+<keyword>message_page_is_being_generated</keyword>
+<keyword>message_preview</keyword>
+<keyword>message_preview_workspace</keyword>
+<keyword>metaCharset</keyword>
+<keyword>moveJsFromHeaderToFooter</keyword>
+<keyword>namespaces</keyword>
+<keyword>noPageTitle</keyword>
+<keyword>noScaleUp</keyword>
+<keyword>no_cache</keyword>
+<keyword>notification_email_charset</keyword>
+<keyword>notification_email_encoding</keyword>
+<keyword>notification_email_urlmode</keyword>
+<keyword>pageGenScript</keyword>
+<keyword>pageRendererTemplateFile</keyword>
+<keyword>pageTitleFirst</keyword>
+<keyword>prefixLocalAnchors</keyword>
+<keyword>removeDefaultCss</keyword>
+<keyword>removeDefaultJS</keyword>
+<keyword>minifyJS</keyword>
+<keyword>minifyCSS</keyword>
+<keyword>compressJs</keyword>
+<keyword>compressCss</keyword>
+<keyword>concatenateJs</keyword>
+<keyword>concatenateCss</keyword>
+<keyword>renderCharset</keyword>
+<keyword>sendCacheHeaders</keyword>
+<keyword>sendCacheHeaders_onlyWhenLoginDeniedInBranch</keyword>
+<keyword>setJS_mouseOver</keyword>
+<keyword>setJS_openPic</keyword>
+<keyword>simulateStaticDocuments</keyword>
+<keyword>simulateStaticDocuments_addTitle</keyword>
+<keyword>simulateStaticDocuments_dontRedirectPathInfoError</keyword>
+<keyword>simulateStaticDocuments_noTypeIfNoTitle</keyword>
+<keyword>simulateStaticDocuments_pEnc</keyword>
+<keyword>simulateStaticDocuments_pEnc_onlyP</keyword>
+<keyword>simulateStaticDocuments_replacementChar</keyword>
+<keyword>spamProtectEmailAddresses</keyword>
+<keyword>spamProtectEmailAddresses_atSubst</keyword>
+<keyword>spamProtectEmailAddresses_lastDotSubst</keyword>
+<keyword>stat</keyword>
+<keyword>stat_apache</keyword>
+<keyword>stat_apache_logfile</keyword>
+<keyword>stat_apache_niceTitle</keyword>
+<keyword>stat_apache_noHost</keyword>
+<keyword>stat_apache_noRoot</keyword>
+<keyword>stat_apache_notExtended</keyword>
+<keyword>stat_apache_pagenames</keyword>
+<keyword>stat_excludeBEuserHits</keyword>
+<keyword>stat_excludeIPList</keyword>
+<keyword>stat_mysql</keyword>
+<keyword>stat_pageLen</keyword>
+<keyword>stat_titleLen</keyword>
+<keyword>stat_typeNumList</keyword>
+<keyword>sword_noMixedCase</keyword>
+<keyword>sword_standAlone</keyword>
+<keyword>sys_language_mode</keyword>
+<keyword>sys_language_overlay</keyword>
+<keyword>sys_language_softExclude</keyword>
+<keyword>sys_language_softMergeIfNotBlank</keyword>
+<keyword>sys_language_uid</keyword>
+<keyword>titleTagFunction </keyword>
+<keyword>typolinkCheckRootline</keyword>
+<keyword>typolinkEnableLinksAcrossDomains</keyword>
+<keyword>typolinkLinkAccessRestrictedPages</keyword>
+<keyword>typolinkLinkAccessRestrictedPages_addParams</keyword>
+<keyword>uniqueLinkVars</keyword>
+<keyword>xhtmlDoctype</keyword>
+<keyword>xhtml_cleaning</keyword>
+<keyword>xmlprologue</keyword>
+<keyword>renderObj</keyword>
+<keyword>select</keyword>
+<keyword>slide</keyword>
+<keyword>table</keyword>
+<keyword>collect</keyword>
+<keyword>collectFuzzy</keyword>
+<keyword>collectReverse</keyword>
+<keyword>bm</keyword>
+<keyword>c</keyword>
+<keyword>cMargins</keyword>
+<keyword>cWidth</keyword>
+<keyword>lm</keyword>
+<keyword>offset</keyword>
+<keyword>rm</keyword>
+<keyword>tm</keyword>
+<keyword>allow</keyword>
+<keyword>edit.displayRecord</keyword>
+<keyword>innerWrap</keyword>
+<keyword>label</keyword>
+<keyword>line</keyword>
+<keyword>newRecordFromTable</keyword>
+<keyword>newRecordInPid</keyword>
+<keyword>onlyCurrentPid</keyword>
+<keyword>outerWrap</keyword>
+<keyword>previewBorder</keyword>
+<keyword>previewBorder.innerWrap</keyword>
+<keyword>allowEdit</keyword>
+<keyword>allowNew</keyword>
+<keyword>autoInsertPID</keyword>
+<keyword>doublePostCheck</keyword>
+<keyword>overrideEdit</keyword>
+<keyword>processScript</keyword>
+<keyword>separator</keyword>
+<keyword>userIdColumn</keyword>
+<keyword>altText</keyword>
+<keyword>emptyTitleHandling</keyword>
+<keyword>file</keyword>
+<keyword>linkWrap</keyword>
+<keyword>longdescURL</keyword>
+<keyword>type</keyword>
+<keyword>name</keyword>
+<keyword>value</keyword>
+<keyword>required</keyword>
+<keyword>CHECK.layout</keyword>
+<keyword>COMMENT.layout</keyword>
+<keyword>LABEL.layout</keyword>
+<keyword>RADIO.layout</keyword>
+<keyword>REQ</keyword>
+<keyword>accessibility</keyword>
+<keyword>arrayReturnMode</keyword>
+<keyword>badMess</keyword>
+<keyword>commentWrap</keyword>
+<keyword>data</keyword>
+<keyword>dataArray</keyword>
+<keyword>dontMd5FieldNames</keyword>
+<keyword>emailMess</keyword>
+<keyword>fieldPrefix</keyword>
+<keyword>fieldWrap</keyword>
+<keyword>formName</keyword>
+<keyword>goodMess</keyword>
+<keyword>hiddenFields</keyword>
+<keyword>image</keyword>
+<keyword>labelWrap</keyword>
+<keyword>layout</keyword>
+<keyword>locationData</keyword>
+<keyword>method</keyword>
+<keyword>noValueInsert</keyword>
+<keyword>noWrapAttr</keyword>
+<keyword>params</keyword>
+<keyword>radioWrap</keyword>
+<keyword>radioWrap.accessibilityWrap</keyword>
+<keyword>radioInputWrap</keyword>
+<keyword>recipient</keyword>
+<keyword>redirect</keyword>
+<keyword>target</keyword>
+<keyword>wrapFieldName</keyword>
+<keyword>cols</keyword>
+<keyword>obj</keyword>
+<keyword>options</keyword>
+<keyword>src</keyword>
+<keyword>XY</keyword>
+<keyword>backColor</keyword>
+<keyword>format</keyword>
+<keyword>maxHeight</keyword>
+<keyword>maxWidth</keyword>
+<keyword>quality</keyword>
+<keyword>reduceColors</keyword>
+<keyword>transparentBackground</keyword>
+<keyword>transparentColor</keyword>
+<keyword>workArea</keyword>
+<keyword>align</keyword>
+<keyword>color</keyword>
+<keyword>dimensions</keyword>
+<keyword>opacity</keyword>
+<keyword>crop</keyword>
+<keyword>blur</keyword>
+<keyword>highColor</keyword>
+<keyword>intensity</keyword>
+<keyword>lowColor</keyword>
+<keyword>textObjNum</keyword>
+<keyword>mask</keyword>
+<keyword>tile</keyword>
+<keyword>thickness</keyword>
+<keyword>angle</keyword>
+<keyword>antiAlias</keyword>
+<keyword>breakWidth</keyword>
+<keyword>breakSpace</keyword>
+<keyword>doNotStripHTML</keyword>
+<keyword>emboss</keyword>
+<keyword>fontColor</keyword>
+<keyword>fontFile</keyword>
+<keyword>fontSize</keyword>
+<keyword>hide</keyword>
+<keyword>hideButCreateMap</keyword>
+<keyword>imgMap</keyword>
+<keyword>iterations</keyword>
+<keyword>niceText</keyword>
+<keyword>outline</keyword>
+<keyword>shadow</keyword>
+<keyword>spacing</keyword>
+<keyword>splitRendering.compX</keyword>
+<keyword>splitRendering.compY</keyword>
+<keyword>text</keyword>
+<keyword>textMaxLength</keyword>
+<keyword>wordSpacing</keyword>
+<keyword>clear</keyword>
+<keyword>set</keyword>
+<keyword>addQueryString</keyword>
+<keyword>alwaysActivePIDlist</keyword>
+<keyword>begin</keyword>
+<keyword>entryLevel</keyword>
+<keyword>excludeDoktypes</keyword>
+<keyword>excludeUidList</keyword>
+<keyword>includeNotInMenu</keyword>
+<keyword>maxItems</keyword>
+<keyword>minItems</keyword>
+<keyword>protectLvar</keyword>
+<keyword>special</keyword>
+<keyword>mode</keyword>
+<keyword>depth</keyword>
+<keyword>beginAtLevel</keyword>
+<keyword>maxAge</keyword>
+<keyword>limit</keyword>
+<keyword>excludeNoSearchPages</keyword>
+<keyword>range</keyword>
+<keyword>reverseOrder</keyword>
+<keyword>targets</keyword>
+<keyword>items</keyword>
+<keyword>items.prevnextToSection</keyword>
+<keyword>next</keyword>
+<keyword>prev</keyword>
+<keyword>nextsection</keyword>
+<keyword>prevsection</keyword>
+<keyword>nextsection_last</keyword>
+<keyword>prevsection_last</keyword>
+<keyword>first</keyword>
+<keyword>last</keyword>
+<keyword>up</keyword>
+<keyword>index</keyword>
+<keyword>uid</keyword>
+<keyword>fields</keyword>
+<keyword>setKeywords</keyword>
+<keyword>keywordsField</keyword>
+<keyword>keywordsField.sourceField</keyword>
+<keyword>userFunc</keyword>
+<keyword>alternativeSortingField</keyword>
+<keyword>imgNameNotRandom</keyword>
+<keyword>imgNamePrefix</keyword>
+<keyword>itemArrayProcFunc</keyword>
+<keyword>sectionIndex</keyword>
+<keyword>showAccessRestrictedPages</keyword>
+<keyword>submenuObjSuffixes</keyword>
+<keyword>ACT</keyword>
+<keyword>ACTRO</keyword>
+<keyword>ACTIFSUB</keyword>
+<keyword>ACTIFSUBRO</keyword>
+<keyword>CUR</keyword>
+<keyword>CURRO</keyword>
+<keyword>CURIFSUB</keyword>
+<keyword>CURIFSUBRO</keyword>
+<keyword>IFSUB</keyword>
+<keyword>IFSUBRO</keyword>
+<keyword>NO</keyword>
+<keyword>SPC</keyword>
+<keyword>USERDEF1</keyword>
+<keyword>USERDEF1RO</keyword>
+<keyword>USERDEF2</keyword>
+<keyword>USERDEF2RO</keyword>
+<keyword>USR</keyword>
+<keyword>USRRO</keyword>
+<keyword>addParams</keyword>
+<keyword>IProcFunc</keyword>
+<keyword>RO</keyword>
+<keyword>accessKey</keyword>
+<keyword>applyTotalH</keyword>
+<keyword>applyTotalW</keyword>
+<keyword>collapse</keyword>
+<keyword>debugItemConf</keyword>
+<keyword>disableAltText</keyword>
+<keyword>distributeX</keyword>
+<keyword>distributeY</keyword>
+<keyword>expAll</keyword>
+<keyword>JSWindow</keyword>
+<keyword>max</keyword>
+<keyword>min</keyword>
+<keyword>noBlur</keyword>
+<keyword>overrideId</keyword>
+<keyword>removeObjectsOfDummy</keyword>
+<keyword>useLargestItemX</keyword>
+<keyword>useLargestItemY</keyword>
+<keyword>wrapItemAndSub</keyword>
+<keyword>ATagTitle</keyword>
+<keyword>additionalParams</keyword>
+<keyword>allStdWrap</keyword>
+<keyword>allWrap</keyword>
+<keyword>altImgResource</keyword>
+<keyword>altTarget</keyword>
+<keyword>imgParams</keyword>
+<keyword>noLink</keyword>
+<keyword>subst_elementUid</keyword>
+<keyword>adjustItemsH</keyword>
+<keyword>adjustSubItemsH</keyword>
+<keyword>arrowImgParams</keyword>
+<keyword>arrowNO</keyword>
+<keyword>bottomContent</keyword>
+<keyword>bottomHeight</keyword>
+<keyword>displayActiveOnLoad</keyword>
+<keyword>dontLinkIfSubmenu</keyword>
+<keyword>dontWrapInTable</keyword>
+<keyword>foldSpeed</keyword>
+<keyword>foldTimer</keyword>
+<keyword>menuBackColor</keyword>
+<keyword>menuHeight</keyword>
+<keyword>menuOffset</keyword>
+<keyword>menuWidth</keyword>
+<keyword>stayFolded</keyword>
+<keyword>subMenuOffset</keyword>
+<keyword>blankStrEqFalse</keyword>
+<keyword>bordersWithin</keyword>
+<keyword>directionLeft</keyword>
+<keyword>directionUp</keyword>
+<keyword>dontFollowMouse</keyword>
+<keyword>dontHideOnMouseUp</keyword>
+<keyword>freezeMouseover</keyword>
+<keyword>hideMenuTimer</keyword>
+<keyword>hideMenuWhenNotOver</keyword>
+<keyword>layerStyle</keyword>
+<keyword>layer_menu_id</keyword>
+<keyword>leftOffset</keyword>
+<keyword>lockPosition</keyword>
+<keyword>lockPosition_addSelf</keyword>
+<keyword>lockPosition_adjust</keyword>
+<keyword>relativeToParentLayer</keyword>
+<keyword>relativeToTriggerItem</keyword>
+<keyword>setFixedHeight</keyword>
+<keyword>setFixedWidth</keyword>
+<keyword>topOffset</keyword>
+<keyword>xPosOffset</keyword>
+<keyword>yPosOffset</keyword>
+<keyword>dWorkArea</keyword>
+<keyword>debugRenumberedObject</keyword>
+<keyword>imgMapExtras</keyword>
+<keyword>main</keyword>
+<keyword>distrib</keyword>
+<keyword>firstLabelGeneral</keyword>
+<keyword>levels</keyword>
+<keyword>menuName</keyword>
+<keyword>wrapAfterTags</keyword>
+<keyword>alwaysLink</keyword>
+<keyword>elements</keyword>
+<keyword>firstLabel</keyword>
+<keyword>showActive</keyword>
+<keyword>showFirst</keyword>
+<keyword>ATagBeforeWrap</keyword>
+<keyword>RO_chBgColor</keyword>
+<keyword>afterImg</keyword>
+<keyword>afterImgLink</keyword>
+<keyword>afterImgTagParams</keyword>
+<keyword>afterROImg</keyword>
+<keyword>afterWrap</keyword>
+<keyword>before</keyword>
+<keyword>beforeImg</keyword>
+<keyword>beforeImgLink</keyword>
+<keyword>beforeImgTagParams</keyword>
+<keyword>beforeROImg</keyword>
+<keyword>beforeWrap</keyword>
+<keyword>doNotLinkIt</keyword>
+<keyword>doNotShowLink</keyword>
+<keyword>stdWrap2</keyword>
+<keyword>wrapItemAndSub </keyword>
+<keyword>splitChar</keyword>
+<keyword>lineColor</keyword>
+<keyword>lineThickness</keyword>
+<keyword>spaceLeft</keyword>
+<keyword>spaceRight</keyword>
+<keyword>tableWidth</keyword>
+<keyword>allowTags</keyword>
+<keyword>globalNesting</keyword>
+<keyword>htmlSpecialChars</keyword>
+<keyword>keepNonMatchedTags</keyword>
+<keyword>localNesting</keyword>
+<keyword>noAttrib</keyword>
+<keyword>removeTags</keyword>
+<keyword>rmTagIfNoAttrib</keyword>
+<keyword>allowedAttribs</keyword>
+<keyword>fixAttrib</keyword>
+<keyword>nesting</keyword>
+<keyword>overrideAttribs</keyword>
+<keyword>protect</keyword>
+<keyword>remap</keyword>
+<keyword>list</keyword>
+<keyword>prefixRelPathWith</keyword>
+<keyword>removeIfEquals</keyword>
+<keyword>removeIfFalse</keyword>
+<keyword>trim</keyword>
+<keyword>unset</keyword>
+<keyword>border</keyword>
+<keyword>imageLinkWrap</keyword>
+<keyword>titleText</keyword>
+<keyword>explode</keyword>
+<keyword>url</keyword>
+<keyword>borderCol</keyword>
+<keyword>borderThick</keyword>
+<keyword>caption</keyword>
+<keyword>captionAlign</keyword>
+<keyword>captionSplit</keyword>
+<keyword>colRelations</keyword>
+<keyword>colSpace</keyword>
+<keyword>editIcons</keyword>
+<keyword>equalH</keyword>
+<keyword>image_compression</keyword>
+<keyword>image_effects</keyword>
+<keyword>image_frames</keyword>
+<keyword>imgList</keyword>
+<keyword>imgMax</keyword>
+<keyword>imgObjNum</keyword>
+<keyword>imgPath</keyword>
+<keyword>imgStart</keyword>
+<keyword>maxW</keyword>
+<keyword>maxWInText</keyword>
+<keyword>noCols</keyword>
+<keyword>noRows</keyword>
+<keyword>noStretchAndMarginCells</keyword>
+<keyword>rowSpace</keyword>
+<keyword>spaceBelowAbove</keyword>
+<keyword>tableStdWrap</keyword>
+<keyword>textMargin</keyword>
+<keyword>textMargin_outOfText</keyword>
+<keyword>textPos</keyword>
+<keyword>REFRESH</keyword>
+<keyword>DESCRIPTION</keyword>
+<keyword>KEYWORDS</keyword>
+<keyword>conf</keyword>
+<keyword>dontCheckPid</keyword>
+<keyword>source</keyword>
+<keyword>tables</keyword>
+<keyword>addExtUrlsAndShortCuts</keyword>
+<keyword>allowedCols</keyword>
+<keyword>noOrderBy</keyword>
+<keyword>noResultObj</keyword>
+<keyword>renderWrap</keyword>
+<keyword>resultObj</keyword>
+<keyword>markerWrap</keyword>
+<keyword>marks</keyword>
+<keyword>nonCachedSubst</keyword>
+<keyword>relPathPrefix</keyword>
+<keyword>subparts</keyword>
+<keyword>substMarksSeparately</keyword>
+<keyword>template</keyword>
+<keyword>workOnSubpart</keyword>
+<keyword>wraps</keyword>
+<keyword>resources</keyword>
+<keyword>sitetitle</keyword>
+<keyword>_GIFBUILDER</keyword>
+<keyword>CSS_inlineStyle</keyword>
+<keyword>adminPanelStyles</keyword>
+<keyword>bgImg</keyword>
+<keyword>bodyTag</keyword>
+<keyword>bodyTagAdd</keyword>
+<keyword>bodyTagCObject</keyword>
+<keyword>bodyTagMargins</keyword>
+<keyword>cssInline</keyword>
+<keyword>extOnReady</keyword>
+<keyword>footerData</keyword>
+<keyword>frameSet</keyword>
+<keyword>headTag</keyword>
+<keyword>headerData</keyword>
+<keyword>hover</keyword>
+<keyword>hoverStyle</keyword>
+<keyword>includeCSS</keyword>
+<keyword>includeJS</keyword>
+<keyword>includeJSlibs</keyword>
+<keyword>includeJSFooter</keyword>
+<keyword>includeJSFooterlibs</keyword>
+<keyword>inlineLanguageLabel</keyword>
+<keyword>inlineSettings</keyword>
+<keyword>insertClassesFromRTE</keyword>
+<keyword>javascriptLibs</keyword>
+<keyword>jsInline</keyword>
+<keyword>jsFooterInline</keyword>
+<keyword>meta</keyword>
+<keyword>noLinkUnderline</keyword>
+<keyword>shortcutIcon</keyword>
+<keyword>smallFormFields</keyword>
+<keyword>stylesheet</keyword>
+<keyword>typeNum</keyword>
+<keyword>charRangeMap</keyword>
+<keyword>_offset</keyword>
+<keyword>addAttributes</keyword>
+<keyword>defaultAlign</keyword>
+<keyword>encapsTagList</keyword>
+<keyword>innerStdWrap_all</keyword>
+<keyword>nonWrappedTag</keyword>
+<keyword>removeWrapping</keyword>
+<keyword>wrapNonWrappedLines</keyword>
+<keyword>icon</keyword>
+<keyword>iconCObject</keyword>
+<keyword>icon_image_ext_list</keyword>
+<keyword>icon_link</keyword>
+<keyword>jumpurl</keyword>
+<keyword>labelStdWrap</keyword>
+<keyword>path</keyword>
+<keyword>removePrependedNumbers</keyword>
+<keyword>size</keyword>
+<keyword>secure</keyword>
+<keyword>secure.mimetypes</keyword>
+<keyword>parameter</keyword>
+<keyword>directReturn</keyword>
+<keyword>equals</keyword>
+<keyword>isFalse</keyword>
+<keyword>isGreaterThan</keyword>
+<keyword>isInList</keyword>
+<keyword>isLessThan</keyword>
+<keyword>isPositive</keyword>
+<keyword>isTrue</keyword>
+<keyword>negate</keyword>
+<keyword>JSwindow</keyword>
+<keyword>JSwindow.altUrl</keyword>
+<keyword>JSwindow.altUrl_noDefaultParams</keyword>
+<keyword>JSwindow.expand</keyword>
+<keyword>JSwindow.newWindow</keyword>
+<keyword>alternativeTempPath</keyword>
+<keyword>directImageLink</keyword>
+<keyword>linkParams</keyword>
+<keyword>effects</keyword>
+<keyword>enable</keyword>
+<keyword>sample</keyword>
+<keyword>title</keyword>
+<keyword>typolink</keyword>
+<keyword>ext</keyword>
+<keyword>frame</keyword>
+<keyword>import</keyword>
+<keyword>m</keyword>
+<keyword>maxH</keyword>
+<keyword>minH</keyword>
+<keyword>minW</keyword>
+<keyword>stripProfile</keyword>
+<keyword>noScale</keyword>
+<keyword>bottomImg</keyword>
+<keyword>bottomImg_mask</keyword>
+<keyword>http</keyword>
+<keyword>mailto</keyword>
+<keyword>keep</keyword>
+<keyword>decimals</keyword>
+<keyword>dec_point</keyword>
+<keyword>thousand_sep</keyword>
+<keyword>denyTags</keyword>
+<keyword>externalBlocks </keyword>
+<keyword>makelinks</keyword>
+<keyword>nonTypoTagStdWrap</keyword>
+<keyword>nonTypoTagUserFunc</keyword>
+<keyword>plainTextStdWrap</keyword>
+<keyword>short</keyword>
+<keyword>sword</keyword>
+<keyword>tags</keyword>
+<keyword>_CSS_DEFAULT_STYLE</keyword>
+<keyword>andWhere</keyword>
+<keyword>groupBy</keyword>
+<keyword>join</keyword>
+<keyword>languageField</keyword>
+<keyword>markers</keyword>
+<keyword>orderBy</keyword>
+<keyword>pidInList</keyword>
+<keyword>selectFields</keyword>
+<keyword>uidInList</keyword>
+<keyword>where</keyword>
+<keyword>cObjNum</keyword>
+<keyword>returnKey</keyword>
+<keyword>token</keyword>
+<keyword>HTMLparser</keyword>
+<keyword>TCAselectItem</keyword>
+<keyword>age</keyword>
+<keyword>append</keyword>
+<keyword>brTag</keyword>
+<keyword>bytes</keyword>
+<keyword>cObject</keyword>
+<keyword>case</keyword>
+<keyword>char</keyword>
+<keyword>cropHTML</keyword>
+<keyword>csConv</keyword>
+<keyword>current</keyword>
+<keyword>dataWrap</keyword>
+<keyword>date</keyword>
+<keyword>debugData</keyword>
+<keyword>debugFunc</keyword>
+<keyword>doubleBrTag</keyword>
+<keyword>editPanel</keyword>
+<keyword>encapsLines</keyword>
+<keyword>field</keyword>
+<keyword>fieldRequired</keyword>
+<keyword>filelink</keyword>
+<keyword>filelist</keyword>
+<keyword>fontTag</keyword>
+<keyword>hash</keyword>
+<keyword>ifBlank</keyword>
+<keyword>ifEmpty</keyword>
+<keyword>innerWrap2</keyword>
+<keyword>insertData</keyword>
+<keyword>intval</keyword>
+<keyword>keywords</keyword>
+<keyword>lang</keyword>
+<keyword>listNum</keyword>
+<keyword>noTrimWrap</keyword>
+<keyword>numRows</keyword>
+<keyword>numberFormat</keyword>
+<keyword>offsetWrap</keyword>
+<keyword>override</keyword>
+<keyword>parseFunc</keyword>
+<keyword>postCObject</keyword>
+<keyword>postUserFunc</keyword>
+<keyword>postUserFuncInt</keyword>
+<keyword>preCObject</keyword>
+<keyword>preIfEmptyListNum</keyword>
+<keyword>preUserFunc</keyword>
+<keyword>prefixComment</keyword>
+<keyword>prepend</keyword>
+<keyword>prioriCalc</keyword>
+<keyword>rawUrlEncode</keyword>
+<keyword>removeBadHTML</keyword>
+<keyword>replacement</keyword>
+<keyword>round</keyword>
+<keyword>setContentToCurrent</keyword>
+<keyword>space</keyword>
+<keyword>spaceAfter</keyword>
+<keyword>spaceBefore</keyword>
+<keyword>split</keyword>
+<keyword>strftime</keyword>
+<keyword>stripHtml</keyword>
+<keyword>substring</keyword>
+<keyword>tableStyle</keyword>
+<keyword>textStyle</keyword>
+<keyword>wrap2</keyword>
+<keyword>wrap3</keyword>
+<keyword>wrapAlign</keyword>
+<keyword>noscript</keyword>
+<keyword>cellpadding</keyword>
+<keyword>cellspacing</keyword>
+<keyword>color.default</keyword>
+<keyword>color.field</keyword>
+<keyword>align.field</keyword>
+<keyword>altWrap</keyword>
+<keyword>color.1</keyword>
+<keyword>face.default</keyword>
+<keyword>face.field</keyword>
+<keyword>properties.default</keyword>
+<keyword>properties.field</keyword>
+<keyword>size.default</keyword>
+<keyword>size.field</keyword>
+<keyword>JSwindow_params</keyword>
+<keyword>returnLast</keyword>
+<keyword>section</keyword>
+<keyword>useCacheHash</keyword>
+
+    </context>
+    <context id="boolean" style-ref="boolean">
+      <prefix>(?i)\b</prefix> <!-- case insensitive -->
+      <keyword>false</keyword>
+      <keyword>true</keyword>
+    </context>
+
+        <context id="tag" class="no-spell-check">
+            <start>&lt;\s*/?\s*[a-z0-9_-]+</start>
+            <end>/?\s*&gt;</end>
+            <include>
+                <context sub-pattern="0" where="start" style-ref="tag"/>
+                <context sub-pattern="0" where="end" style-ref="tag"/>
+                <context ref="generic-tag"/>
+            </include>
+        </context>
+
+    <context id="ts">
+      <include>
+        <context ref="ts:tlo-objects"/>
+        <context ref="ts:c-objects"/>
+        <context ref="ts:keywords"/>
+        <context ref="ts:bash-line-comment"/>
+        <context ref="ts:c-block-comment"/>
+        <context ref="ts:hexadecimal-color"/>
+        <context ref="ts:named-color"/>
+	<context ref="ts:boolean"/>
+        <context ref="ts:dtd"/>
+        <context ref="ts:tag"/>
+        <context ref="ts:number"/>
+	<context ref="html:html"/>
+      </include>
+    </context>
+
+
+  </definitions>
+</language>
