@@ -8,7 +8,7 @@ The mime type is
 text/x-typoscript     t3 t3s
 application/x-typoscript t3 t3s
 
-Save the file as root under /usr/share/gtksourceview-2.0/language-specs
+Save the file under ~/.local/share/gtksourceview-3.0/language-specs
 
 Have fun and enjoy! :)
 Torsten
