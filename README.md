@@ -10,5 +10,9 @@ application/x-typoscript t3 t3s
 
 Save the file under ~/.local/share/gtksourceview-3.0/language-specs
 
+I don't no why!
+Save the file under ~/.local/share/gtksourceview-2.0/language-specs
+then it works
+
 Have fun and enjoy! :)
 Torsten
